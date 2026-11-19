@@ -144,7 +144,7 @@ legend { padding: 0 0 6px; }
   white-space: nowrap;
 }
 
-.badge[data-size="small"] { --badge-scale: .75; }
+.badge[data-size="small"] { --badge-scale: .5; }
 .badge[data-size="large"] { --badge-scale: 1.25; }
 
 .badge:is([data-position="top-left"], [data-position="bottom-left"]) {
