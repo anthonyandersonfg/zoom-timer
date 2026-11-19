@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Host Timer</title>
+  <link rel="stylesheet" href="/timer.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <main id="controller" hidden>
+    <header>
+      <h1>Host Timer</h1>
+      <p class="subtitle">Countdown on your Zoom camera</p>
+    </header>
+
+    <section class="monitor" aria-label="Timer controls">
+      <div class="monitor-label">
+        <span>Countdown</span>
+        <span id="timer-status" role="status">Ready</span>
+      </div>
+      <output id="clock" class="clock" role="timer" aria-label="Time remaining">15:00</output>
+      <div class="actions">
+        <button id="start" class="primary" type="button">Start</button>
+        <button id="reset" type="button">Reset</button>
+      </div>
+    </section>
+
+    <form id="duration" class="duration">
+      <label for="minutes">Duration in minutes</label>
+      <div class="duration-input">
+        <input id="minutes" type="number" min="1" max="180" value="15" required inputmode="numeric">
+        <button id="set-duration" type="submit">Set</button>
+      </div>
+      <fieldset>
+        <legend>Presets</legend>
+        <div class="presets">
+          <button type="button" data-minutes="5">5 min</button>
+          <button type="button" data-minutes="10">10 min</button>
+          <button type="button" data-minutes="15">15 min</button>
+          <button type="button" data-minutes="30">30 min</button>
+        </div>
+      </fieldset>
+    </form>
+
+    <section class="camera-control" aria-label="Camera overlay">
+      <div class="camera-heading">
+        <h2>Camera overlay</h2>
+        <span id="camera-status" data-state="hidden">Hidden</span>
+      </div>
+      <button id="toggle-camera" type="button" disabled>Show on camera</button>
+      <p id="notice" role="status">Connecting to Zoom…</p>
+      <div id="preview" class="preview" hidden>
+        <span id="preview-badge" class="badge" aria-hidden="true" hidden></span>
+      </div>
+    </section>
+  </main>
+
+  <div id="camera" class="camera" hidden>
+    <div id="camera-badge" class="badge"></div>
+  </div>
+</body>
+</html>
