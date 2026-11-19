@@ -1,4 +1,4 @@
-import { DEFAULT_MINUTES, followTimer, paintTimer, validTimer } from "./timer.js";
+import { DEFAULT_MINUTES, followTimer, paintLayout, paintTimer, validTimer } from "./timer.js";
 
 export const capabilities = [
   "getUserContext", "runRenderingContext", "closeRenderingContext",
@@ -78,6 +78,7 @@ export async function runCamera(sdk, config) {
 
     revision = message.revision;
     timer = message.timer;
+    paintLayout(badge, message.layout);
     paint();
     camera.hidden = false;
     post(sdk, { kind: "applied", cameraId, revision }).catch(console.warn);
@@ -91,14 +92,14 @@ export async function runCamera(sdk, config) {
   }
 }
 
-export function cameraLink(sdk, getTimer, onMeetingEnd) {
+export function cameraLink(sdk, getState, onMeetingEnd) {
   let cameraId;
   let lastApplied = -1;
   let revision = 0;
   let active = false;
 
   function send() {
-    return post(sdk, { kind: "timer", cameraId, revision, timer: getTimer() });
+    return post(sdk, { kind: "timer", cameraId, revision, ...getState() });
   }
 
   sdk.addEventListener("onMessage", (event) => {

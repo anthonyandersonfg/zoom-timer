@@ -62,7 +62,7 @@ h2 { font-size: 15px; }
 
 .actions { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; }
 
-button, input {
+button, input, select {
   font: inherit;
   min-height: 40px;
   border-radius: 9px;
@@ -75,16 +75,16 @@ button { padding: 7px 9px; font-size: 13px; font-weight: 650; }
 button:hover:not(:disabled) { background: #2a3850; cursor: pointer; }
 button.primary { background: #b9d1ff; border-color: #b9d1ff; color: #11213e; }
 button.primary:hover:not(:disabled) { background: #d2e1ff; }
-button:disabled, input:disabled { opacity: .52; }
+button:disabled, input:disabled, select:disabled { opacity: .52; }
 :focus-visible { outline: 2px solid #b9d1ff; outline-offset: 3px; }
 
 .duration { margin-top: 21px; }
-.duration label, legend { color: var(--muted); font-size: 12px; }
+.duration label, .overlay-options label, legend { color: var(--muted); font-size: 12px; }
 .duration-input { display: grid; grid-template-columns: minmax(0, 1fr) 60px; gap: 8px; margin-top: 6px; }
 .duration input { width: 100%; padding: 0 10px; }
 fieldset { margin: 10px 0 0; padding: 0; border: 0; }
 legend { padding: 0 0 6px; }
-.presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .presets button { padding-inline: 3px; }
 .presets button[aria-pressed="true"] { border-color: #99baff; color: #c7dcff; }
 
@@ -98,6 +98,22 @@ legend { padding: 0 0 6px; }
 #camera-status[data-state="pending"], #camera-status[data-state="unknown"] { color: var(--orange); }
 #toggle-camera { width: 100%; margin: 10px 0 8px; }
 #notice[data-error="true"] { color: var(--red); }
+
+.overlay-options {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.overlay-options select {
+  display: block;
+  width: 100%;
+  margin-top: 5px;
+  padding: 0 8px;
+  color: #f2f5fb;
+  font-size: 13px;
+}
 
 .preview {
   position: relative;
@@ -121,13 +137,33 @@ legend { padding: 0 0 6px; }
   border-radius: .28em;
   background: #121822;
   color: var(--green);
-  font-size: 8.5vmin;
+  font-size: calc(var(--badge-size, 8.5vmin) * var(--badge-scale, 1));
   line-height: 1;
   font-weight: 750;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-.preview .badge { font-size: 18px; font-size: 6cqw; }
+.badge[data-size="small"] { --badge-scale: .75; }
+.badge[data-size="large"] { --badge-scale: 1.25; }
+
+.badge:is([data-position="top-left"], [data-position="bottom-left"]) {
+  left: 5%;
+  transform: none;
+}
+
+.badge:is([data-position="top-right"], [data-position="bottom-right"]) {
+  right: 5%;
+  left: auto;
+  transform: none;
+}
+
+.badge:is([data-position="bottom-left"], [data-position="bottom-right"]) {
+  top: auto;
+  /* Zoom’s name label can cover the lower quarter of a small video thumbnail. */
+  bottom: 32%;
+}
+
+.preview .badge { --badge-size: 4.8cqw; }
 [data-tone="orange"] { color: var(--orange); }
 [data-tone="red"] { color: var(--red); }

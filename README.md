@@ -1,12 +1,13 @@
 # Host Timer for Zoom Workplace on macOS
 
-Host Timer adds a countdown at the top center of the host’s outgoing video through Zoom Apps Camera Mode. Everyone who can see the host’s video can see the timer using their normal Zoom client.
+Host Timer adds a countdown to the host’s outgoing video through Zoom Apps Camera Mode. Everyone who can see the host’s video can see the timer using their normal Zoom client.
 
 ## Controls
 
-- Set a duration from 1 to 180 minutes, or use a 5, 10, 15, or 30 minute preset. The default is 15 minutes.
+- Set a duration from 1 to 180 minutes, or use a 15, 30, or 60 minute preset. The default is 60 minutes.
 - Use **Start**, **Pause**, **Resume**, and **Reset** in the Apps sidebar.
 - Use **Show on camera** and **Hide from camera** to control visibility independently of the countdown. The overlay starts hidden. A running timer keeps counting when hidden.
+- Choose **Small**, **Medium**, or **Large** and one of five positions. The overlay starts at medium size in the top center. Changing the layout while the timer is visible keeps its countdown running.
 - The timer is green above 5:00, orange from 5:00 through 0:01, and red at 0:00. It stays red until reset, restarted, or hidden.
 
 ## Browser preview

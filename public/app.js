@@ -1,4 +1,4 @@
-import { DEFAULT_MINUTES, followTimer, paintTimer, remainingMs } from "./timer.js";
+import { DEFAULT_MINUTES, followTimer, paintLayout, paintTimer, remainingMs } from "./timer.js";
 import { cameraLink, capabilities, configureZoom, runCamera } from "./zoom.js";
 
 const element = (id) => document.getElementById(id);
@@ -12,7 +12,11 @@ function runController() {
   const minutes = element("minutes");
   const toggle = element("toggle-camera");
   const status = element("camera-status");
+  const size = element("overlay-size");
+  const position = element("overlay-position");
+  const previewBadge = element("preview-badge");
   const presets = [...document.querySelectorAll("[data-minutes]")];
+  const getLayout = () => ({ size: size.value, position: position.value });
   let timer = { remaining: DEFAULT_MINUTES * 60_000, deadline: null };
   let duration = DEFAULT_MINUTES;
   let phase = "ready";
@@ -46,6 +50,7 @@ function runController() {
     start.disabled = busy;
     reset.disabled = busy || phase === "ready";
     toggle.disabled = busy || !link || meetingEnded;
+    size.disabled = position.disabled = toggle.disabled || overlay === "unknown";
     minutes.disabled = busy || !editable;
     element("set-duration").disabled = minutes.disabled;
     const timerStatus = finished ? "Time’s up" : running ? "Running" : phase === "paused" ? "Paused" : "Ready";
@@ -61,9 +66,8 @@ function runController() {
 
   const paint = followTimer(() => timer, (value, now) => {
     paintTimer(element("clock"), value, now);
-    const badge = element("preview-badge");
-    badge.hidden = overlay !== "visible";
-    if (previewMode) paintTimer(badge, value, now);
+    previewBadge.hidden = overlay !== "visible";
+    if (previewMode) paintTimer(previewBadge, value, now);
     paintControls();
   });
 
@@ -79,15 +83,20 @@ function runController() {
     }
   }
 
-  async function updateTimer() {
+  async function updateTimer({ layoutOnly = false } = {}) {
     paint();
     if (overlay !== "visible" || previewMode) return;
     busy = true;
     paintControls();
     try {
       await link.sync();
+      if (layoutOnly) notice("Attendees see the timer when your Zoom video is on.");
     } catch (error) {
       console.warn(error);
+      if (layoutOnly) {
+        notice("Zoom couldn’t confirm the new size or position. Change an option to try again.", true);
+        return;
+      }
       const hidden = await hideOverlay();
       notice(hidden
         ? "The camera stopped responding. The overlay was hidden. You can show it again."
@@ -122,6 +131,12 @@ function runController() {
     });
   }
   reset.addEventListener("click", resetTimer);
+  for (const control of [size, position]) {
+    control.addEventListener("change", () => {
+      if (previewMode) paintLayout(previewBadge, getLayout());
+      void updateTimer({ layoutOnly: true });
+    });
+  }
   start.addEventListener("click", () => {
     const remaining = remainingMs(timer);
     if (phase === "running" && remaining > 0) {
@@ -180,7 +195,7 @@ function runController() {
         notice("Camera Mode is unavailable. Check the Zoom client version and the app’s SDK capabilities.", true);
         return;
       }
-      link = cameraLink(sdk, () => timer, () => {
+      link = cameraLink(sdk, () => ({ timer, layout: getLayout() }), () => {
         meetingEnded = true;
         overlay = "hidden";
         phase = "ready";
@@ -193,6 +208,7 @@ function runController() {
     },
     preview() {
       element("preview").hidden = false;
+      paintLayout(previewBadge, getLayout());
       link = { show() {}, hide() {} };
       notice(previewMessage);
       paint();

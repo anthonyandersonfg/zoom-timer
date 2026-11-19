@@ -1,4 +1,9 @@
-export const DEFAULT_MINUTES = 15;
+export const DEFAULT_MINUTES = 60;
+
+export function paintLayout(badge, layout) {
+  badge.dataset.size = layout?.size ?? "medium";
+  badge.dataset.position = layout?.position ?? "top-center";
+}
 
 export function remainingMs(timer, now = Date.now()) {
   return timer.deadline === null ? timer.remaining : Math.max(0, timer.deadline - now);
