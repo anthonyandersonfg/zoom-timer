@@ -88,6 +88,23 @@ legend { padding: 0 0 6px; }
 .presets button { padding-inline: 3px; }
 .presets button[aria-pressed="true"] { border-color: #99baff; color: #c7dcff; }
 
+.sound-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.sound-option input {
+  width: 16px;
+  height: 16px;
+  min-height: 0;
+  margin: 0;
+  accent-color: #b9d1ff;
+}
+
 .camera-control {
   margin-top: 23px;
   padding-top: 16px;

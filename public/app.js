@@ -4,6 +4,15 @@ import { cameraLink, capabilities, configureZoom, runCamera } from "./zoom.js";
 const element = (id) => document.getElementById(id);
 const previewMode = new URLSearchParams(location.search).get("preview") === "1";
 const previewMessage = "Browser preview. Open Host Timer inside Zoom to show it on your video.";
+const preferencesKey = "host-timer:preferences";
+
+function loadPreferences() {
+  try {
+    return JSON.parse(localStorage.getItem(preferencesKey)) ?? {};
+  } catch {
+    return {};
+  }
+}
 
 function runController() {
   element("controller").hidden = false;
@@ -14,16 +23,76 @@ function runController() {
   const status = element("camera-status");
   const size = element("overlay-size");
   const position = element("overlay-position");
+  const sound = element("expiry-sound");
   const previewBadge = element("preview-badge");
   const presets = [...document.querySelectorAll("[data-minutes]")];
   const getLayout = () => ({ size: size.value, position: position.value });
-  let timer = { remaining: DEFAULT_MINUTES * 60_000, deadline: null };
-  let duration = DEFAULT_MINUTES;
+  const preferences = loadPreferences();
+  let duration = Number.isInteger(preferences.duration)
+    && preferences.duration >= Number(minutes.min) && preferences.duration <= Number(minutes.max)
+    ? preferences.duration : DEFAULT_MINUTES;
+  minutes.value = String(duration);
+  for (const control of [size, position]) {
+    const value = preferences[control === size ? "size" : "position"];
+    if ([...control.options].some((option) => option.value === value)) control.value = value;
+  }
+  sound.checked = preferences.sound !== false;
+  let timer = { remaining: duration * 60_000, deadline: null };
   let phase = "ready";
   let overlay = "hidden";
   let busy = false;
   let link;
   let meetingEnded = false;
+  let audio;
+  let expiryHandled = false;
+
+  function savePreferences() {
+    try {
+      localStorage.setItem(preferencesKey, JSON.stringify({
+        duration,
+        ...getLayout(),
+        sound: sound.checked,
+      }));
+    } catch (error) {
+      console.warn("Host Timer could not save preferences.", error);
+    }
+  }
+
+  function prepareSound() {
+    const AudioContext = window.AudioContext ?? window.webkitAudioContext;
+    if (!sound.checked || !AudioContext) return;
+    try {
+      audio ??= new AudioContext();
+      if (audio.state !== "running") void audio.resume().catch(console.warn);
+    } catch (error) {
+      console.warn("Host Timer could not prepare the alert sound.", error);
+    }
+  }
+
+  function playExpirySound() {
+    if (!sound.checked || audio?.state !== "running") return;
+    const startAt = audio.currentTime;
+    const tone = audio.createOscillator();
+    const volume = audio.createGain();
+    tone.type = "sine";
+    tone.frequency.value = 660;
+    volume.gain.setValueAtTime(0, startAt);
+    volume.gain.linearRampToValueAtTime(0.035, startAt + 0.02);
+    volume.gain.exponentialRampToValueAtTime(0.001, startAt + 0.25);
+    tone.connect(volume).connect(audio.destination);
+    tone.start(startAt);
+    tone.stop(startAt + 0.26);
+  }
+
+  function alertAtExpiry(left) {
+    if (phase !== "running" || left > 0 || expiryHandled) return;
+    expiryHandled = true;
+    try {
+      playExpirySound();
+    } catch (error) {
+      console.warn("Host Timer could not play the alert sound.", error);
+    }
+  }
 
   function notice(text, error = false) {
     const message = element("notice");
@@ -31,10 +100,9 @@ function runController() {
     message.dataset.error = String(error);
   }
 
-  function paintControls() {
-    const finished = remainingMs(timer) === 0;
-    const running = phase === "running" && !finished;
-    const editable = phase === "ready" || finished;
+  function paintControls(now = Date.now()) {
+    const overtime = remainingMs(timer, now) <= 0;
+    const running = phase === "running";
     const labels = {
       hidden: ["Hidden", "Show on camera"],
       opening: ["Connecting…", "Showing…"],
@@ -45,15 +113,15 @@ function runController() {
     [status.textContent, toggle.textContent] = labels[overlay];
     status.dataset.state = busy && (overlay === "opening" || overlay === "closing")
       ? "pending" : overlay;
-    const label = finished ? "Restart" : running ? "Pause" : phase === "paused" ? "Resume" : "Start";
+    const label = running ? "Pause" : phase === "paused" ? "Resume" : "Start";
     if (start.textContent !== label) start.textContent = label;
     start.disabled = busy;
     reset.disabled = busy || phase === "ready";
     toggle.disabled = busy || !link || meetingEnded;
     size.disabled = position.disabled = toggle.disabled || overlay === "unknown";
-    minutes.disabled = busy || !editable;
+    minutes.disabled = busy || phase !== "ready";
     element("set-duration").disabled = minutes.disabled;
-    const timerStatus = finished ? "Time’s up" : running ? "Running" : phase === "paused" ? "Paused" : "Ready";
+    const timerStatus = running ? (overtime ? "Overtime" : "Running") : phase === "paused" ? "Paused" : "Ready";
     if (element("timer-status").textContent !== timerStatus) {
       element("timer-status").textContent = timerStatus;
     }
@@ -65,10 +133,15 @@ function runController() {
   }
 
   const paint = followTimer(() => timer, (value, now) => {
-    paintTimer(element("clock"), value, now);
+    const clock = element("clock");
+    paintTimer(clock, value, now);
+    const left = remainingMs(value, now);
+    const label = left <= 0 ? "Time over" : "Time remaining";
+    if (clock.getAttribute("aria-label") !== label) clock.setAttribute("aria-label", label);
+    alertAtExpiry(left);
     previewBadge.hidden = overlay !== "visible";
     if (previewMode) paintTimer(previewBadge, value, now);
-    paintControls();
+    paintControls(now);
   });
 
   async function hideOverlay() {
@@ -110,13 +183,24 @@ function runController() {
   function readDuration() {
     if (!minutes.reportValidity()) return false;
     duration = minutes.valueAsNumber;
+    savePreferences();
     return true;
   }
 
-  function resetTimer() {
+  function readyTimer() {
     phase = "ready";
+    expiryHandled = false;
     timer = { remaining: duration * 60_000, deadline: null };
+  }
+
+  function resetTimer() {
+    readyTimer();
     void updateTimer();
+  }
+
+  function startTimer(remaining) {
+    phase = "running";
+    timer = { remaining, deadline: Date.now() + remaining };
   }
 
   element("duration").addEventListener("submit", (event) => {
@@ -127,34 +211,44 @@ function runController() {
     preset.addEventListener("click", () => {
       duration = Number(preset.dataset.minutes);
       minutes.value = String(duration);
+      savePreferences();
       resetTimer();
     });
   }
   reset.addEventListener("click", resetTimer);
   for (const control of [size, position]) {
     control.addEventListener("change", () => {
+      savePreferences();
       if (previewMode) paintLayout(previewBadge, getLayout());
       void updateTimer({ layoutOnly: true });
     });
   }
+  sound.addEventListener("change", () => {
+    savePreferences();
+    prepareSound();
+  });
   start.addEventListener("click", () => {
-    const remaining = remainingMs(timer);
-    if (phase === "running" && remaining > 0) {
+    if (phase === "running") {
+      const remaining = remainingMs(timer);
+      alertAtExpiry(remaining);
       phase = "paused";
       timer = { remaining, deadline: null };
     } else {
-      if ((phase === "ready" || remaining === 0) && !readDuration()) return;
-      const length = phase === "paused" && remaining > 0 ? remaining : duration * 60_000;
-      phase = "running";
-      timer = { remaining: length, deadline: Date.now() + length };
+      if (phase === "ready" && !readDuration()) return;
+      prepareSound();
+      startTimer(phase === "paused" ? timer.remaining : duration * 60_000);
     }
     void updateTimer();
   });
 
   toggle.addEventListener("click", async () => {
     if (busy || !link) return;
-    busy = true;
     const showing = overlay === "hidden";
+    const startOnShow = showing && phase === "ready";
+    if (startOnShow && !readDuration()) return;
+    if (showing) prepareSound();
+    if (startOnShow) startTimer(duration * 60_000);
+    busy = true;
     overlay = showing ? "opening" : "closing";
     paint();
     if (showing) {
@@ -168,6 +262,7 @@ function runController() {
       } catch (error) {
         console.warn(error);
         if (!meetingEnded) {
+          if (startOnShow) readyTimer();
           const hidden = error.cameraWasRequested ? await hideOverlay() : true;
           if (hidden) overlay = "hidden";
           notice(hidden ? (error.message || "Zoom couldn’t show the timer.")
@@ -198,8 +293,7 @@ function runController() {
       link = cameraLink(sdk, () => ({ timer, layout: getLayout() }), () => {
         meetingEnded = true;
         overlay = "hidden";
-        phase = "ready";
-        timer = { remaining: duration * 60_000, deadline: null };
+        readyTimer();
         notice("Meeting ended. Open Host Timer in your next meeting to use the overlay.");
         paint();
       });

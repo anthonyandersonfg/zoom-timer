@@ -5,10 +5,12 @@ Host Timer adds a countdown to the host’s outgoing video through Zoom Apps Cam
 ## Controls
 
 - Set a duration from 1 to 180 minutes, or use a 15, 30, or 60 minute preset. The default is 60 minutes.
-- Use **Start**, **Pause**, **Resume**, and **Reset** in the Apps sidebar.
-- Use **Show on camera** and **Hide from camera** to control visibility independently of the countdown. The overlay starts hidden. A running timer keeps counting when hidden.
-- Choose **Small**, **Medium**, or **Large** and one of five positions. The overlay starts at medium size in the top center. Changing the layout while the timer is visible keeps its countdown running.
-- The timer is green above 5:00, orange from 5:00 through 0:01, and red at 0:00. It stays red until reset, restarted, or hidden.
+- Each meeting starts with the saved duration, overlay size and position, and sound preference. These settings are stored locally on the device.
+- The overlay starts hidden. **Show on camera** starts a ready timer and displays it. **Hide from camera** removes the overlay while a running timer keeps counting.
+- Use **Start** to run the timer without showing it. **Pause**, **Resume**, and **Reset** work during the countdown and during overtime.
+- Choose **Small**, **Medium**, or **Large** and one of five positions. The default layout is medium at the top center. Changing the layout keeps the timer running.
+- The timer is green above 5:00, orange from 5:00 through 0:01, and red at 0:00. It then counts up in red, for example **+00:15**.
+- **Play a quiet sound at zero** is enabled by default. The alert plays once per run on the host’s device while Host Timer is open, including when the overlay is hidden.
 
 ## Browser preview
 
@@ -39,10 +41,10 @@ The service serves the app and a static installation landing page. The timer use
 
 Have a second device join as an attendee with its camera off. Check the host’s tile from that device.
 
-1. Confirm the host’s video starts without an overlay. Set 6 minutes, select **Show on camera**, then **Start**. Check the green timer and its transition to orange at 5:00.
+1. Confirm the host’s video starts without an overlay. Set 6 minutes and select **Show on camera**. Check that the timer starts and transitions from green to orange at 5:00.
 2. Hide it during the countdown, wait a few seconds, then show it again. The attendee should see the current time. Check pause, resume, and reset.
-3. Set 1 minute and let it finish. Confirm the attendee sees red 0:00, then hide it.
-4. Open a separate window for a few seconds during a run and return. Confirm the timer has caught up, and verify that ending the meeting removes the overlay.
+3. Reset, set 1 minute, and start a new run. Confirm the attendee sees the red overtime count and the host hears one quiet alert at zero. Pause and resume during overtime, then hide the overlay.
+4. End the meeting and open Host Timer in a new meeting. Confirm the saved duration, layout, and sound preference load and the overlay starts hidden.
 
 The sidebar and camera use the same absolute deadline. The camera calculates its own display locally and receives updates when the host changes the timer. This keeps delayed callbacks from accumulating drift and lets the countdown catch up when the renderer resumes. Attendee-side video delay still depends on Zoom and the connection.
 

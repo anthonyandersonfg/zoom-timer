@@ -6,16 +6,18 @@ export function paintLayout(badge, layout) {
 }
 
 export function remainingMs(timer, now = Date.now()) {
-  return timer.deadline === null ? timer.remaining : Math.max(0, timer.deadline - now);
+  return timer.deadline === null ? timer.remaining : timer.deadline - now;
 }
 
 export function timerDisplay(timer, now = Date.now()) {
-  const seconds = Math.ceil(remainingMs(timer, now) / 1000);
+  const left = remainingMs(timer, now);
+  const overtime = left < 0;
+  const seconds = overtime ? Math.floor(-left / 1000) : Math.ceil(left / 1000);
   const minutes = String(Math.floor(seconds / 60)).padStart(2, "0");
   const remainder = String(seconds % 60).padStart(2, "0");
   return {
-    text: `${minutes}:${remainder}`,
-    tone: seconds === 0 ? "red" : seconds <= 300 ? "orange" : "green",
+    text: `${overtime && seconds > 0 ? "+" : ""}${minutes}:${remainder}`,
+    tone: left <= 0 ? "red" : seconds <= 300 ? "orange" : "green",
   };
 }
 
@@ -26,7 +28,7 @@ export function paintTimer(element, timer, now) {
 }
 
 export function validTimer(timer) {
-  return timer && Number.isFinite(timer.remaining) && timer.remaining >= 0
+  return timer && Number.isSafeInteger(timer.remaining)
     && timer.remaining <= 180 * 60_000
     && (timer.deadline === null || Number.isSafeInteger(timer.deadline));
 }
@@ -40,8 +42,9 @@ export function followTimer(getTimer, paint) {
     const now = Date.now();
     paint(timer, now);
     const left = remainingMs(timer, now);
-    if (timer.deadline !== null && left > 0) {
-      timeout = setTimeout(tick, (left % 1000 || 1000) + 12);
+    if (timer.deadline !== null) {
+      const untilChange = left > 0 ? (left % 1000 || 1000) : 1000 - (-left % 1000);
+      timeout = setTimeout(tick, untilChange + 12);
     }
   }
   document.addEventListener("visibilitychange", tick);
